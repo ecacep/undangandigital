@@ -239,8 +239,8 @@ function autoScrollStep(timestamp) {
   const delta = timestamp - autoScrollLastTime;
 
   // ⬇️ kontrol kecepatan (ubah di sini)
-  const speed = 0.5; // semakin kecil = semakin lambat (0.3 - 1)
-  const interval = 30; // semakin besar = semakin santai (20 - 50)
+  const speed = 1; // semakin kecil = semakin lambat (0.3 - 1)
+  const interval = 20; // semakin besar = semakin santai (20 - 50)
 
   if (delta >= interval) {
     const maxScroll =
