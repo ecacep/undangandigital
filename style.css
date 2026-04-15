@@ -1198,3 +1198,21 @@ textarea:focus {
     margin-right: auto;
   }
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-overflow-scrolling: touch;
+}
+
+.bg-orb {
+  will-change: transform;
+}
+
+@media (max-width: 768px) {
+  .bg-orb {
+    transform: none !important;
+  }
+}

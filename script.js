@@ -9,16 +9,19 @@ const wishForm = document.getElementById("wishForm");
 const wishList = document.getElementById("wishList");
 const copyButtons = document.querySelectorAll(".copy-btn");
 const guestName = document.getElementById("guestName");
+const autoScrollToggle = document.getElementById("autoScrollToggle");
 
 let musicPlaying = false;
+let autoScrolling = false;
+let autoScrollFrame = null;
+let autoScrollLastTime = 0;
 
 window.addEventListener("load", () => {
-  window.scrollTo(0, 0);
-
   if (loader) {
     setTimeout(() => {
       loader.classList.add("hide");
-    }, 1200);
+      loader.style.pointerEvents = "none";
+    }, 800);
   }
 
   setupGuestName();
@@ -40,30 +43,28 @@ function setupGuestName() {
 
 if (openInvitationBtn && openingScreen) {
   openInvitationBtn.addEventListener("click", async () => {
-    window.scrollTo(0, 0);
-
     openingScreen.classList.add("hidden");
     openingScreen.style.pointerEvents = "none";
 
     setTimeout(() => {
       openingScreen.style.display = "none";
-    }, 700);
+    }, 500);
 
     try {
       if (bgMusic) {
         await bgMusic.play();
         musicPlaying = true;
-        if (musicToggle) musicToggle.textContent = "Pause Musik";
+        if (musicToggle) {
+          musicToggle.textContent = "Pause Musik";
+        }
       }
     } catch (error) {
-      if (musicToggle) musicToggle.textContent = "Putar Musik";
+      if (musicToggle) {
+        musicToggle.textContent = "Putar Musik";
+      }
     }
   });
 }
-
-window.addEventListener("pageshow", () => {
-  window.scrollTo(0, 0);
-});
 
 if (musicToggle && bgMusic) {
   musicToggle.addEventListener("click", async () => {
@@ -84,24 +85,24 @@ if (musicToggle && bgMusic) {
 }
 
 function revealOnScroll() {
-  const triggerBottom = window.innerHeight * 0.88;
+  const triggerBottom = window.innerHeight * 0.92;
 
-  revealItems.forEach((item, index) => {
+  revealItems.forEach((item) => {
     const rect = item.getBoundingClientRect();
-
     if (rect.top < triggerBottom) {
-      setTimeout(() => {
-        item.classList.add("show");
-      }, index * 45);
+      item.classList.add("show");
     }
   });
 }
 
-window.addEventListener("scroll", () => {
-  revealOnScroll();
-  updateActiveNav();
-  parallaxOrbs();
-});
+window.addEventListener(
+  "scroll",
+  () => {
+    revealOnScroll();
+    updateActiveNav();
+  },
+  { passive: true }
+);
 
 document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
   anchor.addEventListener("click", function (event) {
@@ -120,6 +121,8 @@ document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
 });
 
 function updateActiveNav() {
+  if (!navLinks.length) return;
+
   const sections = document.querySelectorAll("main section, header.hero");
 
   sections.forEach((section) => {
@@ -137,17 +140,6 @@ function updateActiveNav() {
       });
     }
   });
-}
-
-function parallaxOrbs() {
-  const scrolled = window.scrollY;
-  const orb1 = document.querySelector(".orb-1");
-  const orb2 = document.querySelector(".orb-2");
-  const orb3 = document.querySelector(".orb-3");
-
-  if (orb1) orb1.style.transform = `translateY(${scrolled * 0.08}px)`;
-  if (orb2) orb2.style.transform = `translateY(${scrolled * -0.05}px)`;
-  if (orb3) orb3.style.transform = `translateY(${scrolled * 0.04}px)`;
 }
 
 const targetDate = new Date("May 20, 2026 08:00:00").getTime();
@@ -182,7 +174,7 @@ function updateCountdown() {
   seconds.textContent = String(s).padStart(2, "0");
 }
 
-
+updateCountdown();
 setInterval(updateCountdown, 1000);
 
 if (wishForm && wishList) {
@@ -216,11 +208,13 @@ copyButtons.forEach((button) => {
       await navigator.clipboard.writeText(value);
       const originalText = button.textContent;
       button.textContent = "Tersalin";
+
       setTimeout(() => {
         button.textContent = originalText;
       }, 1500);
     } catch (error) {
       button.textContent = "Gagal Salin";
+
       setTimeout(() => {
         button.textContent = "Salin Nomor";
       }, 1500);
@@ -234,40 +228,63 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-const autoScrollToggle = document.getElementById("autoScrollToggle");
-let autoScrollInterval = null;
-let autoScrolling = false;
+/* AUTO SCROLL */
+function autoScrollStep(timestamp) {
+  if (!autoScrolling) return;
 
-function startAutoScroll() {
-  stopAutoScroll();
+  if (!autoScrollLastTime) {
+    autoScrollLastTime = timestamp;
+  }
 
-  autoScrolling = true;
-  if (autoScrollToggle) autoScrollToggle.textContent = "Stop Scroll";
+  const delta = timestamp - autoScrollLastTime;
 
-  autoScrollInterval = setInterval(() => {
-    const atBottom =
-      window.innerHeight + window.scrollY >= document.body.offsetHeight - 4;
+  // ⬇️ kontrol kecepatan (ubah di sini)
+  const speed = 0.5; // semakin kecil = semakin lambat (0.3 - 1)
+  const interval = 30; // semakin besar = semakin santai (20 - 50)
 
-    if (atBottom) {
+  if (delta >= interval) {
+    const maxScroll =
+      document.documentElement.scrollHeight - window.innerHeight;
+
+    const currentScroll = window.scrollY || window.pageYOffset;
+
+    if (currentScroll >= maxScroll - 2) {
       stopAutoScroll();
       return;
     }
 
-    window.scrollBy({
-      top: 2,
-      left: 0,
-      behavior: "auto",
-    });
-  }, 16);
+
+    window.scrollTo(0, currentScroll + 1);
+    autoScrollLastTime = timestamp;
+  }
+
+  autoScrollFrame = requestAnimationFrame(autoScrollStep);
+}
+
+function startAutoScroll() {
+  if (autoScrolling) return;
+
+  autoScrolling = true;
+  autoScrollLastTime = 0;
+
+  if (autoScrollToggle) {
+    autoScrollToggle.textContent = "Auto Scroll";
+  }
+
+  autoScrollFrame = requestAnimationFrame(autoScrollStep);
 }
 
 function stopAutoScroll() {
   autoScrolling = false;
-  if (autoScrollToggle) autoScrollToggle.textContent = "Auto Scroll";
+  autoScrollLastTime = 0;
 
-  if (autoScrollInterval) {
-    clearInterval(autoScrollInterval);
-    autoScrollInterval = null;
+  if (autoScrollFrame !== null) {
+    cancelAnimationFrame(autoScrollFrame);
+    autoScrollFrame = null;
+  }
+
+  if (autoScrollToggle) {
+    autoScrollToggle.textContent = "Auto Scroll";
   }
 }
 
@@ -280,3 +297,8 @@ if (autoScrollToggle) {
     }
   });
 }
+
+window.addEventListener("touchstart", stopAutoScroll, { passive: true });
+window.addEventListener("wheel", stopAutoScroll, { passive: true });
+window.addEventListener("mousedown", stopAutoScroll);
+window.addEventListener("keydown", stopAutoScroll);
